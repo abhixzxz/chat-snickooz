@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import Image from "next/image"
 import { Sheet, SheetContent, SheetHeader } from "@/components/ui/sheet"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
@@ -40,7 +41,9 @@ import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-
+import { useUserStore } from "@/app/store/useUserStore"
+import CoverImage from '../../../public/assets/coverimage.jpg'
+import { useRouter } from 'next/navigation';
 interface LoggedInUserProfileProps {
   isOpen: boolean
   onClose: () => void
@@ -51,25 +54,28 @@ export default function LoggedInUserProfile({ isOpen, onClose }: LoggedInUserPro
   const [editMode, setEditMode] = useState(false)
   const [statusMenuOpen, setStatusMenuOpen] = useState(false)
   const { theme, setTheme } = useThemeStore()
+  const router = useRouter();
+  const { user } = useUserStore()
 
-  // Mock logged-in user data
+  // If user is not logged in, return null
+  if (!user) return null
+
   const currentUser = {
-    id: 0,
-    name: "Alex Johnson",
-    email: "alex.johnson@example.com",
-    phone: "+1 (555) 123-4567",
-    status: "active",
-    statusMessage: "Available",
-    avatar: "/placeholder.svg?height=200&width=200",
-    role: "Product Manager",
-    company: "Acme Inc.",
-    location: "New York, USA",
-    bio: "Product enthusiast with a passion for user-centered design and technology.",
+    id: user._id,
+    name: `${user.firstName} ${user.lastName}`,
+    email: user.email,
+    status: user.status,
+    avatar: user.avatar,
+    username: user.username,
+    lastActive: new Date(user.lastActive).toLocaleString(),
+    createdAt: new Date(user.createdAt).toLocaleDateString(),
+    gender: user.gender,
+    dateOfBirth: new Date(user.dateOfBirth).toLocaleDateString(),
     socialLinks: {
-      twitter: "alexjohnson",
-      linkedin: "alex-johnson",
-      github: "alexjohnson-dev",
-      instagram: "alexjohnson.design"
+      twitter: '',
+      linkedin: '',
+      github: '',
+      instagram: ''
     }
   }
 
@@ -87,6 +93,11 @@ export default function LoggedInUserProfile({ isOpen, onClose }: LoggedInUserPro
 
   const toggleEditMode = () => {
     setEditMode(!editMode)
+  }
+
+  const handleLogout = () => {
+    useUserStore.getState().logout();
+    router.push('/auth/login');
   }
 
   return (
@@ -116,7 +127,14 @@ export default function LoggedInUserProfile({ isOpen, onClose }: LoggedInUserPro
           </SheetHeader>
 
           <div className="relative mt-6 px-6">
-            <div className="h-32 bg-gradient-to-r from-primary/20 via-primary/10 to-primary/5 rounded-xl"></div>
+            <div className="h-32 rounded-xl overflow-hidden">
+              <Image
+                src={CoverImage}
+                alt="Cover"
+                className="w-full h-full object-cover"
+                priority
+              />
+            </div>
             <div className="absolute -bottom-12 left-6 flex items-end gap-4">
               <div className="relative">
                 <Avatar className="h-24 w-24 border-4 border-background">
@@ -162,9 +180,8 @@ export default function LoggedInUserProfile({ isOpen, onClose }: LoggedInUserPro
                   </DialogContent>
                 </Dialog>
                 <div
-                  className={`absolute bottom-1 right-10 h-4 w-4 rounded-full border-2 border-background ${
-                    statusOptions.find((s) => s.value === currentUser.status)?.color || "bg-green-500"
-                  }`}
+                  className={`absolute bottom-1 right-10 h-4 w-4 rounded-full border-2 border-background ${statusOptions.find((s) => s.value === currentUser.status)?.color || "bg-green-500"
+                    }`}
                 ></div>
               </div>
               <div className="pb-2">
@@ -503,7 +520,9 @@ export default function LoggedInUserProfile({ isOpen, onClose }: LoggedInUserPro
 
                       <Separator />
 
-                      <Button variant="destructive" className="w-full gap-2">
+                      <Button
+                        onClick={handleLogout}
+                        variant="destructive" className="w-full gap-2">
                         <LogOut className="h-4 w-4" />
                         Sign Out
                       </Button>

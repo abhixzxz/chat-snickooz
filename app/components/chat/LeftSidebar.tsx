@@ -6,6 +6,7 @@ import { Settings } from "lucide-react"
 import LoggedInUserProfile from "./logged-in-user-profile"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
+import { useUserStore } from "@/app/store/useUserStore"
 
 interface LeftSidebarProps {
   onChatSelect: (chatId: number) => void
@@ -14,15 +15,11 @@ interface LeftSidebarProps {
 
 export default function LeftSidebar({ onChatSelect, selectedChatId }: LeftSidebarProps) {
   const [isProfileOpen, setIsProfileOpen] = useState(false)
+  const { user } = useUserStore()
 
   const openProfile = () => setIsProfileOpen(true)
   const closeProfile = () => setIsProfileOpen(false)
 
-  const currentUser = {
-    name: "Alex Johnson",
-    avatar: "/placeholder.svg?height=40&width=40",
-    status: "active",
-  }
 
   return (
     <div className="h-screen flex flex-col bg-[var(--background)] text-[var(--foreground)]">
@@ -35,13 +32,13 @@ export default function LeftSidebar({ onChatSelect, selectedChatId }: LeftSideba
           <div className="flex items-center space-x-3">
             <div className="relative">
               <Avatar className="h-10 w-10">
-                <AvatarImage src={currentUser.avatar || "/placeholder.svg"} alt={currentUser.name} />
-                <AvatarFallback>{currentUser.name.charAt(0)}</AvatarFallback>
+                <AvatarImage src={user?.avatar || "huhu no imageei"} alt={user?.firstName} />
+                <AvatarFallback>{user?.firstName.charAt(0)}</AvatarFallback>
               </Avatar>
               <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-green-500 border-2 border-white"></span>
             </div>
             <div>
-              <h2 className="font-semibold">{currentUser.name}</h2>
+              <h2 className="font-semibold">{user?.firstName}</h2>
               <p className="text-xs text-gray-500">Available</p>
             </div>
           </div>

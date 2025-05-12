@@ -33,7 +33,7 @@ export default function RightSection({ onBack, showBackButton, selectedUserId }:
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
-  
+
   useEffect(() => {
     if (selectedUserId) {
       const conversation = conversations.find(conv => conv.userId === selectedUserId);
@@ -46,7 +46,7 @@ export default function RightSection({ onBack, showBackButton, selectedUserId }:
 
   const handleSendMessage = () => {
     if (!newMessage.trim()) return;
-    
+
     const message: Message = {
       id: messages.length + 1,
       text: newMessage,
@@ -61,7 +61,7 @@ export default function RightSection({ onBack, showBackButton, selectedUserId }:
   return (
     <div className="flex-1 flex flex-col h-screen">
       {/* Top Profile Bar */}
-   { selectedUserId &&  <div className="p-4 border-b border-[var(--muted)] flex justify-between items-center">
+      {selectedUserId && <div className="p-4 border-b border-[var(--muted)] flex justify-between items-center">
         <div className="flex items-center space-x-3">
           {showBackButton && (
             <button onClick={onBack} className="mr-2">
@@ -70,18 +70,18 @@ export default function RightSection({ onBack, showBackButton, selectedUserId }:
           )}
           <div className="p-2 bg-[var(--muted)] rounded-full cursor-pointer">
             <Image
-            src={users.find(u => u.id === selectedUserId)?.avatar || "/placeholder.svg"}
-            alt="User Avatar"
-            width={50}
-            height={50}
-            className="rounded-full text-[var(--muted-foreground)] w-6 h-6 "
-               onClick={() => {
-                        setShowProfileSheet(true);
-                        setShowDropdown(false);
-                      }}  />
+              src={users.find(u => u.id === selectedUserId)?.avatar || "/placeholder.svg"}
+              alt="User Avatar"
+              width={50}
+              height={50}
+              className="rounded-full text-[var(--muted-foreground)] w-6 h-6 "
+              onClick={() => {
+                setShowProfileSheet(true);
+                setShowDropdown(false);
+              }} />
 
-            
-         
+
+
           </div>
           <div className='h-[50px]'>
             <h2 className="font-semibold">
@@ -113,11 +113,11 @@ export default function RightSection({ onBack, showBackButton, selectedUserId }:
                         alt="User Avatar"
                         width={50}
                         height={50}
-                        className="rounded-full text-[var(--muted-foreground)] w-6 h-6 " 
-                       onClick={() => {
-                        setShowProfileSheet(true);
-                        setShowDropdown(false);
-                      }}
+                        className="rounded-full text-[var(--muted-foreground)] w-6 h-6 "
+                        onClick={() => {
+                          setShowProfileSheet(true);
+                          setShowDropdown(false);
+                        }}
                       />
                     </div>
                     <div>
@@ -185,35 +185,34 @@ export default function RightSection({ onBack, showBackButton, selectedUserId }:
           </div>
         ) : (
           messages.map((message) => (
-          <div
-            key={message.id}
-            className={`flex items-start space-x-2 ${message.sender === 'user' ? 'flex-row-reverse space-x-reverse' : 'flex-row'}`}
-          >
-            <div className="flex-shrink-0">
-              <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center">
-                <Image  
-               src={users.find(u => u.id === selectedUserId)?.avatar || "/placeholder.svg"}
-                        alt="User Avatar"
-                        width={50}
-                        height={50}
-                        className="rounded-full text-[var(--muted-foreground)] w-6 h-6 " 
+            <div
+              key={message.id}
+              className={`flex items-start space-x-2 ${message.sender === 'user' ? 'flex-row-reverse space-x-reverse' : 'flex-row'}`}
+            >
+              <div className="flex-shrink-0">
+                <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center">
+                  <Image
+                    src={users.find(u => u.id === selectedUserId)?.avatar || "/placeholder.svg"}
+                    alt="User Avatar"
+                    width={50}
+                    height={50}
+                    className="rounded-full text-[var(--muted-foreground)] w-6 h-6 "
 
 
-               />
+                  />
+                </div>
+              </div>
+              <div
+                className={`max-w-[70%] p-3 mx-2 relative ${message.sender === 'user'
+                    ? 'bg-[var(--primary)] text-white rounded-l-lg rounded-br-lg before:absolute before:right-[-8px] before:top-0 before:border-t-[10px] before:border-r-[10px] before:border-transparent before:border-t-[var(--primary)]'
+                    : 'bg-[var(--muted)] text-[var(--foreground)] rounded-r-lg rounded-bl-lg before:absolute before:left-[-8px] before:top-0 before:border-t-[10px] before:border-l-[10px] before:border-transparent before:border-t-[var(--muted)]'
+                  }`}
+              >
+                <p>{message.text}</p>
+                <p className="text-xs mt-1 opacity-70">{message.timestamp}</p>
               </div>
             </div>
-            <div
-              className={`max-w-[70%] p-3 mx-2 relative ${
-                message.sender === 'user'
-                  ? 'bg-[var(--primary)] text-white rounded-l-lg rounded-br-lg before:absolute before:right-[-8px] before:top-0 before:border-t-[10px] before:border-r-[10px] before:border-transparent before:border-t-[var(--primary)]'
-                  : 'bg-[var(--muted)] text-[var(--foreground)] rounded-r-lg rounded-bl-lg before:absolute before:left-[-8px] before:top-0 before:border-t-[10px] before:border-l-[10px] before:border-transparent before:border-t-[var(--muted)]'
-              }`}
-            >
-              <p>{message.text}</p>
-              <p className="text-xs mt-1 opacity-70">{message.timestamp}</p>
-            </div>
-          </div>
-        ))
+          ))
         )}
       </div>
 
@@ -225,11 +224,11 @@ export default function RightSection({ onBack, showBackButton, selectedUserId }:
             className="p-2 text-[var(--muted-foreground)] hover:text-[var(--foreground)] focus:outline-none"
           >
             <Image
-            src={EmojiIcon}
-            alt="Emoji"
-            width={30}
-            height={30}
-            className=" text-yellow-300 cursor-pointer hover:animate-spin" />
+              src={EmojiIcon}
+              alt="Emoji"
+              width={30}
+              height={30}
+              className=" text-yellow-300 cursor-pointer hover:animate-spin" />
           </button>
           <input
             type="text"

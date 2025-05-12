@@ -1,17 +1,21 @@
 "use client"
 
 import type React from "react"
-
 import { useState } from "react"
+import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { Eye, EyeOff, Loader2 } from "lucide-react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
+import { useMutation } from "@tanstack/react-query"
+import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
 import { loginSchema, type LoginFormData } from "../validations/auth.schema"
+import { authApi } from "@/app/api/auth"
+import { useUserStore } from "@/app/store/useUserStore"
 
 export function LoginForm() {
   const [showPassword, setShowPassword] = useState(false)
@@ -28,10 +32,26 @@ export function LoginForm() {
     },
   })
 
-  const onSubmit = async (data: LoginFormData) => {
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1500))
-    console.log(data)
+  const router = useRouter()
+  const { setUser, setToken } = useUserStore()
+
+  const { mutate: login, isLoading } = useMutation({
+    mutationFn: (data: LoginFormData) => authApi.login(data),
+    onSuccess: (response: AuthResponse) => {
+      const { user, token } = response.data;
+      setUser(user);
+      setToken(token);
+      toast.success("Logged in successfully");
+      router.push('/');
+    },
+    onError: (error: any) => {
+      const message = error?.response?.data?.message || "Failed to login. Please try again.";
+      toast.error(message);
+    },
+  });
+
+  const onSubmit = (data: LoginFormData) => {
+    login(data)
   }
 
   return (
@@ -89,9 +109,8 @@ export function LoginForm() {
           Remember me
         </Label>
       </div>
-      <Link href="/" className="text-xs text-muted-foreground hover:text-primary">
-       <Button type="submit" className="w-full" disabled={isSubmitting}>
-        {isSubmitting ? (
+      <Button type="submit" className="w-full" disabled={isLoading}>
+        {isLoading ? (
           <>
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             Signing in...
@@ -100,7 +119,6 @@ export function LoginForm() {
           "Sign in"
         )}
       </Button>
-      </Link>
       
       <div className="relative">
         <div className="absolute inset-0 flex items-center">

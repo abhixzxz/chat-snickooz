@@ -2,14 +2,19 @@
 
 import type React from "react"
 import { useState } from "react"
+import { useRouter } from "next/navigation"
 import { Eye, EyeOff, Loader2 } from "lucide-react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
+import { useMutation } from "@tanstack/react-query"
+import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
 import { registerSchema, type RegisterFormData } from "../validations/auth.schema"
+import { authApi } from "@/app/api/auth"
+import { useUserStore } from "@/app/store/useUserStore"
 
 const genderOptions = ["Male", "Female", "Other", "Prefer not to say"]
 
@@ -33,10 +38,30 @@ export function RegisterForm() {
     },
   })
 
-  const onSubmit = async (data: RegisterFormData) => {
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1500))
-    console.log(data)
+  const router = useRouter()
+  const { setUser, setToken } = useUserStore()
+
+  const { mutate: registerUser, isLoading } = useMutation({
+    mutationFn: (data: RegisterFormData) => authApi.register(data),
+    onSuccess: (response) => {
+      const { user, token } = response.data
+      setUser(user)
+      setToken(token)
+      toast.success("Account created successfully")
+      router.push('/')
+    },
+    onError: (error: any) => {
+      const message = error?.response?.data?.message || "Failed to create account. Please try again."
+      toast.error(message)
+    },
+  })
+
+  const onSubmit = (data: RegisterFormData) => {
+    const payload = {
+      ...data,
+      dateOfBirth: data.dob,
+    };
+    registerUser(payload);
   }
 
   return (
@@ -166,8 +191,8 @@ export function RegisterForm() {
           </a>
         </Label>
       </div>
-      <Button type="submit" className="w-full" disabled={isSubmitting}>
-        {isSubmitting ? (
+      <Button type="submit" className="w-full" disabled={isLoading}>
+        {isLoading ? (
           <>
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             Creating account...
