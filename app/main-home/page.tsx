@@ -6,6 +6,7 @@ import { AnimatePresence } from 'framer-motion';
 import { QuestionSection } from './components/QuestionSection';
 import { ImageSelection } from './components/ImageSelection';
 import { ChatButton } from './components/ChatButton';
+import { User } from '../api/auth';
 
 const questions = [
     {
@@ -32,7 +33,7 @@ export default function HomePage() {
     const params = useSearchParams();
     const [answers, setAnswers] = useState<Record<string, string>>({});
     const [step, setStep] = useState(0);
-    const [selectedImage, setSelectedImage] = useState<string | null>(null);
+    const [selectedUser, setSelectedUser] = useState<User | null>(null);
     const [isLoading, setIsLoading] = useState(false);
 
     const handleAnswer = (id: string, value: string) => {
@@ -83,11 +84,10 @@ export default function HomePage() {
                     {step >= questions.length && (
                         <>
                             <ImageSelection
-                                mockImages={mockImages}
-                                selectedImage={selectedImage}
-                                onImageSelect={setSelectedImage}
+                                selectedUser={selectedUser}
+                                onUserSelect={setSelectedUser}
                             />
-                            {selectedImage && <ChatButton />}
+                            {selectedUser && <ChatButton selectedUser={selectedUser} />}
                         </>
                     )}
                 </AnimatePresence>

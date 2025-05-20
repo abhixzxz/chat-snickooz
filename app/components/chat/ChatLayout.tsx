@@ -8,7 +8,7 @@ import RightSection from './RightSection';
 export default function ChatLayout() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [selectedChat, setSelectedChat] = useState<number | null>(null);
+  const [selectedChat, setSelectedChat] = useState<string | null>(null);
   const [isMobileView, setIsMobileView] = useState(false);
 
 
@@ -27,7 +27,7 @@ export default function ChatLayout() {
     setSelectedChat(chatId ? parseInt(chatId) : null);
   }, [searchParams]);
 
-  const handleChatSelect = (chatId: number) => {
+  const handleChatSelect = (chatId: string) => {
     router.push(`?chatId=${chatId}`);
   };
 

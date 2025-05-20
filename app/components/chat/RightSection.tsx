@@ -1,6 +1,7 @@
 'use client';
 
-import { conversations, Message, users } from '@/app/data/mockData';
+import { Message } from '@/app/data/mockData';
+import { useConnectionStore } from '@/app/store/useConnectionStore';
 import { User, Phone, Video, MoreVertical, Send, ArrowLeft, UserCircle, Ban, Settings } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import UserProfileSheet from './user-profile-sheet';
@@ -14,7 +15,7 @@ import Image from 'next/image';
 interface RightSectionProps {
   onBack?: () => void;
   showBackButton?: boolean;
-  selectedUserId?: number | null;
+  selectedUserId?: string | null;
 }
 
 export default function RightSection({ onBack, showBackButton, selectedUserId }: RightSectionProps) {
@@ -34,14 +35,14 @@ export default function RightSection({ onBack, showBackButton, selectedUserId }:
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  const { selectedConnection } = useConnectionStore();
+
   useEffect(() => {
-    if (selectedUserId) {
-      const conversation = conversations.find(conv => conv.userId === selectedUserId);
-      if (conversation) {
-        setMessages(conversation.messages);
-      }
+    if (selectedUserId && selectedConnection) {
+      // TODO: Fetch messages from API
+      setMessages([]);
     }
-  }, [selectedUserId]);
+  }, [selectedUserId, selectedConnection]);
   const [newMessage, setNewMessage] = useState('');
 
   const handleSendMessage = () => {
@@ -70,11 +71,11 @@ export default function RightSection({ onBack, showBackButton, selectedUserId }:
           )}
           <div className="p-2 bg-[var(--muted)] rounded-full cursor-pointer">
             <Image
-              src={users.find(u => u.id === selectedUserId)?.avatar || "/placeholder.svg"}
-              alt="User Avatar"
+              src={selectedConnection?.user.avatar || "/placeholder.svg"}
+              alt={`${selectedConnection?.user.firstName || 'User'} Avatar`}
               width={50}
               height={50}
-              className="rounded-full text-[var(--muted-foreground)] w-6 h-6 "
+              className="rounded-full text-[var(--muted-foreground)] w-6 h-6"
               onClick={() => {
                 setShowProfileSheet(true);
                 setShowDropdown(false);
@@ -85,10 +86,10 @@ export default function RightSection({ onBack, showBackButton, selectedUserId }:
           </div>
           <div className='h-[50px]'>
             <h2 className="font-semibold">
-              {selectedUserId ? users.find(u => u.id === selectedUserId)?.name : 'Select a chat'}
+              {selectedConnection ? `${selectedConnection.user.firstName} ${selectedConnection.user.lastName}` : 'Select a chat'}
             </h2>
             <p className="text-sm text-green-500">
-              {selectedUserId ? users.find(u => u.id === selectedUserId)?.status === 'active' ? 'Active now' : 'Offline' : ''}
+              {selectedConnection ? selectedConnection.user.status === 'active' ? 'Active now' : 'Offline' : ''}
             </p>
           </div>
         </div>
@@ -204,8 +205,8 @@ export default function RightSection({ onBack, showBackButton, selectedUserId }:
               </div>
               <div
                 className={`max-w-[70%] p-3 mx-2 relative ${message.sender === 'user'
-                    ? 'bg-[var(--primary)] text-white rounded-l-lg rounded-br-lg before:absolute before:right-[-8px] before:top-0 before:border-t-[10px] before:border-r-[10px] before:border-transparent before:border-t-[var(--primary)]'
-                    : 'bg-[var(--muted)] text-[var(--foreground)] rounded-r-lg rounded-bl-lg before:absolute before:left-[-8px] before:top-0 before:border-t-[10px] before:border-l-[10px] before:border-transparent before:border-t-[var(--muted)]'
+                  ? 'bg-[var(--primary)] text-white rounded-l-lg rounded-br-lg before:absolute before:right-[-8px] before:top-0 before:border-t-[10px] before:border-r-[10px] before:border-transparent before:border-t-[var(--primary)]'
+                  : 'bg-[var(--muted)] text-[var(--foreground)] rounded-r-lg rounded-bl-lg before:absolute before:left-[-8px] before:top-0 before:border-t-[10px] before:border-l-[10px] before:border-transparent before:border-t-[var(--muted)]'
                   }`}
               >
                 <p>{message.text}</p>

@@ -1,25 +1,65 @@
 "use client"
 
-import { useState } from "react"
-import { users } from "@/app/data/mockData"
+import { useState, useEffect } from "react"
 import { Settings } from "lucide-react"
 import LoggedInUserProfile from "./logged-in-user-profile"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { useUserStore } from "@/app/store/useUserStore"
+import { connectionsApi } from "@/app/api/connections"
+
+interface Connection {
+  connectionId: string
+  user: {
+    _id: string
+    firstName: string
+    lastName: string
+    username: string
+    avatar: string
+    status: string
+  }
+  lastMessage: { text: string } | null
+  lastMessageTime: string | null
+  unreadCount: number
+}
 
 interface LeftSidebarProps {
-  onChatSelect: (chatId: number) => void
-  selectedChatId?: number | null
+  onChatSelect: (chatId: string) => void
+  selectedChatId?: string | null
 }
 
 export default function LeftSidebar({ onChatSelect, selectedChatId }: LeftSidebarProps) {
   const [isProfileOpen, setIsProfileOpen] = useState(false)
+  const [connections, setConnections] = useState<Connection[]>([])
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const { user } = useUserStore()
+
+  useEffect(() => {
+    const fetchConnections = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const response = await connectionsApi.getUserConnections();
+        console.log('API Response:', response);
+        const connectionsData = response
+        console.log('Connections data:', connectionsData);
+        setConnections(connectionsData);
+      } catch (err) {
+        console.error('Error fetching connections:', err);
+        setError(err instanceof Error ? err.message : 'Failed to fetch connections');
+        setConnections([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchConnections();
+  }, []);
 
   const openProfile = () => setIsProfileOpen(true)
   const closeProfile = () => setIsProfileOpen(false)
-
+  console.log("connexxxxx datga",)
 
   return (
     <div className="h-screen flex flex-col bg-[var(--background)] text-[var(--foreground)]">
@@ -32,7 +72,7 @@ export default function LeftSidebar({ onChatSelect, selectedChatId }: LeftSideba
           <div className="flex items-center space-x-3">
             <div className="relative">
               <Avatar className="h-10 w-10">
-                <AvatarImage src={user?.avatar || "huhu no imageei"} alt={user?.firstName} />
+                <AvatarImage src={user?.avatar?.replace(/[`\s]/g, '') || "/placeholder.svg"} alt={user?.firstName} />
                 <AvatarFallback>{user?.firstName.charAt(0)}</AvatarFallback>
               </Avatar>
               <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-green-500 border-2 border-white"></span>
@@ -76,39 +116,51 @@ export default function LeftSidebar({ onChatSelect, selectedChatId }: LeftSideba
         <div className="p-4">
           <h3 className="text-xs font-medium text-gray-500 mb-2">RECENT CONVERSATIONS</h3>
         </div>
-        {users.map((user) => (
-          <div
-            key={user.id}
-            className={`flex items-center p-4 hover:bg-[var(--muted)] cursor-pointer transition-colors ${selectedChatId === user.id ? "bg-[var(--primary)]/5 border-l-4 border-[var(--primary)]" : ""}`}
-            onClick={() => onChatSelect(user.id)}
-          >
-            <div className="relative">
-              <Avatar className="h-10 w-10">
-                <AvatarImage src={user.avatar || "/placeholder.svg?height=40&width=40"} alt={user.name} />
-                <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
-              </Avatar>
-              {user.status === "active" && (
-                <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-green-500 border-2 border-white"></span>
-              )}
-            </div>
-            <div className="ml-3 flex-1">
-              <div className="flex justify-between items-center">
-                <p className="font-medium">{user.name}</p>
-                <p className="text-xs text-gray-400">{user.lastMessageTime || "12:45 PM"}</p>
-              </div>
-              <div className="flex justify-between items-center">
-                <p className="text-sm text-gray-500 truncate max-w-[150px]">
-                  {user.lastMessage || "Hey, how are you doing?"}
-                </p>
-                {user.unreadCount && (
-                  <Badge className="h-5 w-5 flex items-center justify-center rounded-full p-0 text-xs">
-                    {user.unreadCount}
-                  </Badge>
+        {loading ? (
+          <div className="flex justify-center items-center p-4">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[var(--primary)]"></div>
+          </div>
+        ) : error ? (
+          <div className="p-4 text-center text-red-500">{error}</div>
+        ) : connections.length === 0 ? (
+          <div className="p-4 text-center text-gray-500">No conversations yet</div>
+        ) : (
+          connections.map((connection) => (
+            <div
+              key={connection.connectionId}
+              className={`flex items-center p-4 hover:bg-[var(--muted)] cursor-pointer transition-colors ${selectedChatId === connection.connectionId ? "bg-[var(--primary)]/5 border-l-4 border-[var(--primary)]" : ""}`}
+              onClick={() => onChatSelect(connection.connectionId)}
+            >
+              <div className="relative">
+                <Avatar className="h-10 w-10">
+                  <AvatarImage src={connection.user.avatar?.trim().replace(/[`]/g, '') || "/placeholder.svg?height=40&width=40"} alt={`${connection.user.firstName} ${connection.user.lastName}`} />
+                  <AvatarFallback>{connection.user.firstName.charAt(0)}</AvatarFallback>
+                </Avatar>
+                {connection.user.status === "active" && (
+                  <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-green-500 border-2 border-white"></span>
                 )}
               </div>
+              <div className="ml-3 flex-1">
+                <div className="flex justify-between items-center">
+                  <p className="font-medium">{`${connection.user.firstName} ${connection.user.lastName}`}</p>
+                  <p className="text-xs text-gray-400">
+                    {connection.lastMessageTime ? new Date(connection.lastMessageTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
+                  </p>
+                </div>
+                <div className="flex justify-between items-center">
+                  <p className="text-sm text-gray-500 truncate max-w-[150px]">
+                    {connection.lastMessage?.text || "No messages yet"}
+                  </p>
+                  {connection.unreadCount > 0 && (
+                    <Badge className="h-5 w-5 flex items-center justify-center rounded-full p-0 text-xs">
+                      {connection.unreadCount}
+                    </Badge>
+                  )}
+                </div>
+              </div>
             </div>
-          </div>
-        ))}
+          ))
+        )}
       </div>
 
       {/* Logged In User Profile Sheet */}
