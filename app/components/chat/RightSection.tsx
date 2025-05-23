@@ -10,7 +10,18 @@ import type { EmojiClickData } from 'emoji-picker-react';
 import NochatSelectedPlaceholder from '../../../public/assets/selectanypalceholder.jpg'
 import EmojiIcon from '../../../public/assets/emoji.png'
 import Image from 'next/image';
+import { api } from '@/app/api';
+import { conversationsApi } from '@/app/api/conversations';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useSearchParams, useRouter } from 'next/navigation';
+import { toast } from 'sonner';
 
+interface Message {
+  id: number;
+  text: string;
+  sender: string;
+  timestamp: string;
+}
 
 interface RightSectionProps {
   onBack?: () => void;
@@ -19,11 +30,12 @@ interface RightSectionProps {
 }
 
 export default function RightSection({ onBack, showBackButton, selectedUserId }: RightSectionProps) {
-  const [messages, setMessages] = useState<Message[]>([]);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
   const [showProfileSheet, setShowProfileSheet] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const queryClient = useQueryClient();
+  const router = useRouter();
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -35,33 +47,91 @@ export default function RightSection({ onBack, showBackButton, selectedUserId }:
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  const searchParams = useSearchParams();
+  const chatId = searchParams.get('chatId');
   const { selectedConnection } = useConnectionStore();
 
-  useEffect(() => {
-    if (selectedUserId && selectedConnection) {
-      // TODO: Fetch messages from API
-      setMessages([]);
-    }
-  }, [selectedUserId, selectedConnection]);
+  // First fetch or create conversation
+  const { data: conversation, isLoading: isConversationLoading } = useQuery({
+    queryKey: ['conversation', selectedUserId],
+    queryFn: async () => {
+      if (!selectedUserId) return null;
+      try {
+        if (chatId) {
+          const response = await api.get(`/conversations/${chatId}`);
+          return response.data.conversation;
+        } else {
+          const response = await conversationsApi.createConversation(selectedUserId);
+          router.push(`?chatId=${response.data.conversation._id}`);
+          return response.data.conversation;
+        }
+      } catch (err) {
+        if (err.response?.status === 404) {
+          const response = await conversationsApi.createConversation(selectedUserId);
+          router.push(`?chatId=${response.data.conversation._id}`);
+          return response.data.conversation;
+        }
+        throw err;
+      }
+    },
+    enabled: !!selectedUserId,
+    retry: false
+  });
+
+  // Then fetch messages for the conversation
+  const { data: messages = [], isLoading: isMessagesLoading, error } = useQuery({
+    queryKey: ['messages', conversation?._id],
+    queryFn: async () => {
+      if (!conversation?._id) return [];
+      try {
+        const response = await api.get(`/messages/${conversation._id}`);
+        return response.data.messages;
+      } catch (err) {
+        throw new Error('Failed to fetch messages');
+      }
+    },
+    enabled: !!conversation?._id,
+    retry: false
+  });
+
   const [newMessage, setNewMessage] = useState('');
 
+  const { mutate: sendMessage } = useMutation({
+    mutationFn: async () => {
+      if (!newMessage.trim() || !conversation?._id) return;
+
+      try {
+        const response = await api.post('/messages', {
+          conversationId: conversation._id,
+          text: newMessage
+        });
+        return response.data.message;
+      } catch (err) {
+        if (err.response?.status === 403) {
+          throw new Error('You do not have permission to send messages in this conversation');
+        }
+        throw new Error('Failed to send message');
+      }
+    },
+    onSuccess: (data) => {
+      queryClient.setQueryData(['messages', conversation?._id],
+        (oldData: Message[] = []) => [...oldData, data]
+      );
+      setNewMessage('');
+      queryClient.invalidateQueries(['messages', conversation?._id]);
+    },
+    onError: (err) => {
+      console.error('Error sending message:', err);
+      toast.error(err.message || 'Failed to send message');
+    }
+  });
+
   const handleSendMessage = () => {
-    if (!newMessage.trim()) return;
-
-    const message: Message = {
-      id: messages.length + 1,
-      text: newMessage,
-      sender: 'user',
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-    };
-
-    setMessages([...messages, message]);
-    setNewMessage('');
+    sendMessage();
   };
 
   return (
     <div className="flex-1 flex flex-col h-screen">
-      {/* Top Profile Bar */}
       {selectedUserId && <div className="p-4 border-b border-[var(--muted)] flex justify-between items-center">
         <div className="flex items-center space-x-3">
           {showBackButton && (
@@ -184,6 +254,14 @@ export default function RightSection({ onBack, showBackButton, selectedUserId }:
               className="max-w-[70%] h-auto opacity-50"
             />
           </div>
+        ) : isConversationLoading || isMessagesLoading ? (
+          <div className="flex items-center justify-center h-full">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[var(--primary)]"></div>
+          </div>
+        ) : error ? (
+          <div className="flex items-center justify-center h-full text-red-500">
+            {error instanceof Error ? error.message : 'An error occurred'}
+          </div>
         ) : (
           messages.map((message) => (
             <div
@@ -241,7 +319,7 @@ export default function RightSection({ onBack, showBackButton, selectedUserId }:
           />
           <button
             onClick={handleSendMessage}
-            className="p-2 bg-[var(--primary)] text-white rounded-lg hover:opacity-90 transition-colors"
+            className="p-2 bg-[var(--primary)] text-white rounded-lg hover:opacity-90 transition-colors w-[500px]"
           >
             <Send className="w-5 h-5" />
           </button>
